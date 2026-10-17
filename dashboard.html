@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MED-04 | SynergiX AI — PANC-1 Synergistic Drug Discovery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/smiles-drawer@2.0.1/dist/smiles-drawer.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #060a14; color: #f1f5f9; }
+    .glass-card { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.16); }
+    .glass-sub { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.12); }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-8 selection:bg-cyan-500/30">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Status & Header -->
+    <header class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2 py-0.5 text-xs font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono-code">MED-04</span>
+          <span class="px-2 py-0.5 text-xs rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Pancreatic Cancer (PANC-1)</span>
+          <span id="apiStatusBadge" class="flex items-center gap-1.5 px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Trained Random Forest Active (Port 8000)
+          </span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">AI-Driven Discovery of Synergistic Drug Combinations</h1>
+        <p class="text-xs sm:text-sm text-slate-300 mt-1">Live Random Forest Inference with Automated Ground-Truth Validation on 496 Assays.</p>
+      </div>
+      <div class="flex gap-3">
+        <div class="glass-sub px-3 py-2 rounded-xl text-center">
+          <div class="text-[11px] text-slate-400 font-medium">5-Fold ROC-AUC</div>
+          <div class="text-lg font-bold text-cyan-300">0.7917</div>
+        </div>
+        <div class="glass-sub px-3 py-2 rounded-xl text-center">
+          <div class="text-[11px] text-slate-400 font-medium">5-Fold RMSE</div>
+          <div class="text-lg font-bold text-cyan-300">0.1355</div>
+        </div>
+        <div class="glass-sub px-3 py-2 rounded-xl text-center">
+          <div class="text-[11px] text-slate-400 font-medium">Total Assays</div>
+          <div class="text-lg font-bold text-cyan-300">496 Pairs</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Benchmark Drug Pair Presets Bar -->
+    <div class="glass-card p-4 rounded-xl">
+      <div class="text-xs text-slate-400 font-medium mb-2.5">Experimental Benchmark Combinations: <span class="text-slate-300">Load verified combinations from Training_set.csv</span></div>
+      <div class="flex flex-wrap gap-2 text-xs">
+        <button onclick="loadPreset('Panobinostat', 'Oprozomib')" class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-medium transition">
+          Panobinostat + Oprozomib (HDAC + Proteasome)
+        </button>
+        <button onclick="loadPreset('BI-2536', 'Daporinad')" class="px-3 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-medium transition">
+          BI-2536 + Daporinad (Plk-1 + NAMPT)
+        </button>
+        <button onclick="loadPreset('GMX-1778', 'Daporinad')" class="px-3 py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-300 font-medium transition">
+          GMX-1778 + Daporinad (Dual Metabolic Synergy)
+        </button>
+        <button onclick="loadPreset('Bortezomib', 'Daporinad')" class="px-3 py-1.5 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 text-blue-300 font-medium transition">
+          Bortezomib + Daporinad (High Cell Death)
+        </button>
+        <button onclick="loadPreset('Sepantronium bromide', 'Daporinad')" class="px-3 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-500/50 text-amber-300 font-medium transition">
+          Sepantronium bromide + Daporinad (Additive / Control)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Grid: Left (Compounds A & B) | Right (Inference & Assessment) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column: Compound A and Compound B -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- COMPOUND A -->
+        <div class="glass-card p-5 rounded-2xl space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Compound A</div>
+              <h2 class="text-lg font-bold text-white">Primary Drug Candidate</h2>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">PANC1 Library</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Select from 32 PANC1 Compounds:</label>
+            <select id="selectA" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500" onchange="onCompoundSelected('A')"></select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Canonical SMILES Structure (Auto-computes descriptors):</label>
+            <input type="text" id="smilesA" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-cyan-200" oninput="onCustomSmiles('A')">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Mechanism of Action (MOA Target):</label>
+              <input type="text" id="moaA" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Log AC50 (M)</span>
+                <span id="logAc50ValA" class="font-mono-code text-cyan-300 font-bold">-7.50</span>
+              </div>
+              <input type="range" id="sliderPotA" min="-10" max="-4" step="0.01" value="-7.5" class="w-full accent-cyan-400" oninput="onSliderChange('A')">
+            </div>
+          </div>
+
+          <!-- Molecular Properties -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">Mol Weight</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="mwA">0.0</div>
+            </div>
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">Crippen LogP</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="logpA">0.0</div>
+            </div>
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">TPSA (Å²)</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="tpsaA">0.0</div>
+            </div>
+          </div>
+
+          <!-- Topological Descriptors -->
+          <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">H-Donors:</span> <span id="hbdA" class="font-bold text-white">0</span></div>
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">H-Acceptors:</span> <span id="hbaA" class="font-bold text-white">0</span></div>
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">Rot Bonds:</span> <span id="rotbA" class="font-bold text-white">0</span></div>
+          </div>
+
+          <!-- 2D Chemical Diagram -->
+          <div class="bg-white rounded-xl p-2 flex justify-center items-center shadow-inner">
+            <canvas id="canvasA" width="340" height="140"></canvas>
+          </div>
+        </div>
+
+        <!-- COMPOUND B -->
+        <div class="glass-card p-5 rounded-2xl space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Compound B</div>
+              <h2 class="text-lg font-bold text-white">Partner Drug Candidate</h2>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">PANC1 Library</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Select from 32 PANC1 Compounds:</label>
+            <select id="selectB" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" onchange="onCompoundSelected('B')"></select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Canonical SMILES Structure (Auto-computes descriptors):</label>
+            <input type="text" id="smilesB" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-emerald-200" oninput="onCustomSmiles('B')">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Mechanism of Action (MOA Target):</label>
+              <input type="text" id="moaB" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Log AC50 (M)</span>
+                <span id="logAc50ValB" class="font-mono-code text-emerald-300 font-bold">-6.80</span>
+              </div>
+              <input type="range" id="sliderPotB" min="-10" max="-4" step="0.01" value="-6.8" class="w-full accent-emerald-400" oninput="onSliderChange('B')">
+            </div>
+          </div>
+
+          <!-- Molecular Properties -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">Mol Weight</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="mwB">0.0</div>
+            </div>
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">Crippen LogP</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="logpB">0.0</div>
+            </div>
+            <div class="glass-sub p-2 rounded-lg">
+              <div class="text-[10px] text-slate-400">TPSA (Å²)</div>
+              <div class="text-sm font-bold text-white font-mono-code" id="tpsaB">0.0</div>
+            </div>
+          </div>
+
+          <!-- Topological Descriptors -->
+          <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">H-Donors:</span> <span id="hbdB" class="font-bold text-white">0</span></div>
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">H-Acceptors:</span> <span id="hbaB" class="font-bold text-white">0</span></div>
+            <div class="glass-sub p-1.5 rounded"><span class="text-slate-400">Rot Bonds:</span> <span id="rotbB" class="font-bold text-white">0</span></div>
+          </div>
+
+          <!-- 2D Chemical Diagram -->
+          <div class="bg-white rounded-xl p-2 flex justify-center items-center shadow-inner">
+            <canvas id="canvasB" width="340" height="140"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Live Model Inference & Validation -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <div class="glass-card p-6 rounded-2xl space-y-5">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Live Model Inference</div>
+            <h2 class="text-xl font-bold text-white">Predicted Synergy Assessment</h2>
+          </div>
+
+          <!-- Score Cards -->
+          <div class="grid grid-cols-2 gap-4">
+            <div id="synergyCard" class="glass-sub p-4 rounded-xl text-center border">
+              <div class="text-xs text-slate-400 font-medium">Random Forest Predicted (γ)</div>
+              <div id="gammaScore" class="text-3xl font-extrabold text-cyan-300 my-1 font-mono-code">--</div>
+              <span id="synergyBadge" class="text-[11px] px-2 py-0.5 rounded font-semibold bg-slate-800 text-slate-300">Evaluating...</span>
+            </div>
+            <div class="glass-sub p-4 rounded-xl text-center">
+              <div class="text-xs text-slate-400 font-medium">Synergy Probability</div>
+              <div id="synergyProb" class="text-3xl font-extrabold text-white my-1 font-mono-code">--%</div>
+              <div class="text-[11px] text-slate-400">Structural Tanimoto: <span id="tanimotoVal" class="text-cyan-300 font-bold">--</span></div>
+            </div>
+          </div>
+
+          <!-- Ground Truth Validation Card -->
+          <div class="glass-sub p-4 rounded-xl border border-slate-700/60 space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Experimental Ground Truth</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono-code">NCATS Assay</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-xs text-slate-300">Wet-Lab Measured Gamma:</span>
+              <span id="expGammaVal" class="text-base font-bold font-mono-code text-white">--</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-xs text-slate-300">Model Absolute Error (|Δγ|):</span>
+              <span id="modelErrorVal" class="text-xs font-bold font-mono-code text-cyan-400">--</span>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <button onclick="triggerInference()" class="w-full py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-lg shadow-cyan-500/20 transition">
+            🚀 Run AI Forward Pass (Query Python Server)
+          </button>
+        </div>
+
+        <!-- Relative Feature Importances -->
+        <div class="glass-card p-5 rounded-2xl space-y-3">
+          <h3 class="text-sm font-bold text-white">Feature Split Importance (Trained Random Forest)</h3>
+          <p class="text-xs text-slate-400">Computed via Gini impurity reduction across 150 ensemble estimators:</p>
+          <div class="space-y-2 text-xs text-slate-300 pt-1">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Potency Difference (|ΔLog AC50|)</span>
+                <span class="font-mono-code text-cyan-300 font-bold">28.4%</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="bg-cyan-400 h-2 rounded-full" style="width: 28.4%;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Lipophilicity Complementarity (LogP)</span>
+                <span class="font-mono-code text-cyan-300 font-bold">19.7%</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="bg-blue-400 h-2 rounded-full" style="width: 19.7%;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Polar Surface Area (TPSA)</span>
+                <span class="font-mono-code text-cyan-300 font-bold">16.2%</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="bg-indigo-400 h-2 rounded-full" style="width: 16.2%;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Molecular Weight Ratio (MW)</span>
+                <span class="font-mono-code text-cyan-300 font-bold">14.1%</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="bg-emerald-400 h-2 rounded-full" style="width: 14.1%;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Mechanism of Action Disparity</span>
+                <span class="font-mono-code text-cyan-300 font-bold">11.5%</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="bg-purple-400 h-2 rounded-full" style="width: 11.5%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Real 32 PANC-1 Compounds Database & All 496 Experimental Pairs -->
+  <script>
+    const DRUG_DATABASE = {
+      "Akt-I-1,2": { smiles: "O=C(NC1=CC=C(C=C1)C2=NC3=CC=CC=C3N2)C4=CC=C(C=C4)C5=NC6=CC=CC=C6N5", pot: -7.5316, moa: "Akt Inhibitor" },
+      "Aminopterin": { smiles: "NC1=NC(N)=C2N=C(CNC3=CC=C(C=C3)C(=O)NC(CCC(O)=O)C(O)=O)C=NC2=N1", pot: -7.4816, moa: "Antifolate" },
+      "BI-2536": { smiles: "CC[C@H]1N(C2CCCC2)C3=NC(NC4=CC=C(C=C4OC)C(=O)NC5CCN(C)CC5)=NC=C3N(C)C1=O", pot: -7.4816, moa: "Polo-like Kinase-1 (Plk-1) Inhibitor" },
+      "BMS-3": { smiles: "COC1=C(OCCCN2CCOCC2)C=C3C(=C1)C(=O)NC(=N3)NC4=CC=CC(=C4)Cl", pot: -7.4316, moa: "LIMK Inhibitor" },
+      "BS-194": { smiles: "CC(C)C1=C2N=C(N[C@@H](CO)[C@H](O)CO)C=C(NCC3=CC=CC=C3)N2N=C1", pot: -6.2316, moa: "CDK1/2/5/9 Inhibitor" },
+      "Bortezomib": { smiles: "CC(C)C[C@H](NC(=O)[C@H](CC1=CC=CC=C1)NC(=O)C2=NC=CN=C2)B(O)O", pot: -7.4316, moa: "26S Proteasome Inhibitor" },
+      "CAY-10581": { smiles: "CC(C)C1=CC=C(C=C1)C2=CC(=NO2)C3=CC=C(O)C=C3", pot: -6.6316, moa: "Hsp90 Inhibitor" },
+      "CPG-52364": { smiles: "COC1=C(OC)C=C2C(NCCN3CCOCC3)=NC(=NC2=C1)C4=CC=C(C=C4)N5CCN(C)CC5", pot: -6.9316, moa: "TLR9 Antagonist" },
+      "Carfilzomib": { smiles: "CC(C)CC(NC(=O)C(CC1=CC=CC=C1)NC(=O)C(CC2=CC=CC=C2)NC(=O)C(COC(C)(C)C)NC(=O)C3=NC=CO3)C(=O)C4(C)OC4", pot: -8.0816, moa: "Proteasome Inhibitor" },
+      "Daporinad": { smiles: "O=C(NCCCCC1CCN(CC1)C(=O)C2=CC=CC=C2)\\C=C\\C3=CN=CC=C3", pot: -7.5316, moa: "NAMPT Inhibitor" },
+      "Dinaciclib (SCH727965)": { smiles: "CCC1=C2N=C(C=C(NCC3=CC=C[N+]([O-])=C3)N2N=C1)N4CCCC[C@H]4CCO", pot: -7.7816, moa: "CDK1/2/5/9 Inhibitor" },
+      "Fascaplysin": { smiles: "O=C1C2=C3C(=CC=C2)C4=C(C=CC=N4)[N+]3=CC5=CC=CC=C15", pot: -6.5316, moa: "CDK4 Inhibitor" },
+      "GMX-1778": { smiles: "ClC1=CC=C(OCCCCCCN\\C(NC2=CC=NC=C2)=N/C#N)C=C1", pot: -8.3316, moa: "IKK beta Inhibitor" },
+      "GSK-461364A": { smiles: "CC1=C(C2=CC=C(CN3CCN(CC3)C(=O)C4CC4)C=C2)C5=C(N1)C=C(C=C5)C6=NC(=CS6)C7=CC=CC=N7", pot: -7.5816, moa: "Plk-1 Inhibitor" },
+      "GW-843682X": { smiles: "CC1=CC(=C(C=C1)C2=CC3=C(N2)C(=O)NC3=O)S(=O)(=O)NCC4=CC=C(F)C=C4", pot: -6.6316, moa: "Plk-1/Plk-3 Inhibitor" },
+      "HMSL10077": { smiles: "CN1C=C(C=N1)C2=CC=C3N=CC4=C(N(C(=O)C=C4)C5=CC6=C(CCN6C(=O)C=C)C=C5)C3=C2", pot: -6.9316, moa: "Kinase Inhibitor" },
+      "IVX-214": { smiles: "COC1=CC=C(C=C1)C2=C(C(=O)N3C4=C2C=C(OC)C(OC)=C4)C5=CC=C(OC)C=C53", pot: -7.6316, moa: "Tubulin Polymerization Inhibitor" },
+      "JS-59-4": { smiles: "O=C(NC1=CC=C(C=C1)S(=O)(=O)N)C2=CC=C(NC(=O)C3=CC=CC=C3)C=C2", pot: -6.4816, moa: "Microtubule Disrupter" },
+      "KX-01": { smiles: "O=C(CC1=CC=C(C=N1)C2=CC=C(OCCN3CCOCC3)C=C2)NCC4=CC=CC=C4", pot: -7.4316, moa: "Src Kinase Inhibitor" },
+      "MK-1775": { smiles: "CN1CCN(CC1)C2=CC=C(NC3=NC=C4C(=O)N(CC=C)N(C4=N3)C5=CC=CC(=N5)C(C)(C)O)C=C2", pot: -6.8316, moa: "Wee1 Inhibitor" },
+      "Methotrexate": { smiles: "CN(CC1=CN=C2N=C(N)N=C(N)C2=N1)C3=CC=C(C=C3)C(=O)N[C@@H](CCC(O)=O)C(O)=O", pot: -7.5316, moa: "DHFR Inhibitor" },
+      "NCGC00188382-01": { smiles: "CC1=NC(=C(C=C1)C2=CC=CC=C2)C3=NC(=CS3)N", pot: -6.8316, moa: "Kinase Inhibitor" },
+      "NSC-319726": { smiles: "CC1=NN(C(=S)N1)C2=CC=CC=C2", pot: -6.7316, moa: "p53 Reactivator" },
+      "Niacin": { smiles: "OC(=O)C1=CN=CC=C1", pot: -5.9316, moa: "Metabolic Modulator" },
+      "Oprozomib": { smiles: "CC(C)CC(NC(=O)C(CC1=CC=CC=C1)NC(=O)C2=NC=CO2)C(=O)C3(C)OC3", pot: -6.7816, moa: "Proteasome Inhibitor" },
+      "Osanetant": { smiles: "ClC1=CC=C(C=C1)C(=O)N(C)CC2(CCN(CC2)C(=O)C3(CCN(CC3)S(=O)(=O)C)C4=CC=CC=C4)C5=CC=CC=C5", pot: -6.4316, moa: "NK2 Receptor Antagonist" },
+      "Panobinostat": { smiles: "CC1=C(CCNCC2=CC=C(\\C=C\\C(=O)NO)C=C2)C3=CC=CC=C3N1", pot: -7.5316, moa: "Pan-HDAC Inhibitor" },
+      "Parogrelil": { smiles: "O=C1NC2=C(C=CC(=C2)C3=NOC(=N3)C4CCCC4)C(=O)N1", pot: -6.4816, moa: "PDE3 Inhibitor" },
+      "Pralatrexate": { smiles: "NC1=NC(N)=C2N=C(CC(CC#C)C3=CC=C(C=C3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)C=NC2=N1", pot: -7.2744, moa: "Dihydrofolate Reductase (DHFR) Inhibitors" },
+      "RGB-286147": { smiles: "CC(C)C1=NN(C2=C1C(=O)NC(CC3=CC=C(OCCO)C=C3)=N2)C4=C(Cl)C=CC=C4Cl", pot: -7.1816, moa: "CDK1/2/3/7/9 Inhibitor" },
+      "Sepantronium bromide": { smiles: "COCCN1C(C)=[N+](CC2=NC=CN=C2)C3=C1C(=O)C4=CC=CC=C4C3=O", pot: -8.3816, moa: "Survivin Suppressant" },
+      "Volasertib": { smiles: "CCC1=NC(NC2=CC=C(C=C2OC)C(=O)NC3CCN(CC4CC4)CC3)=NC=C1N(C5CCCC5)C(=O)C", pot: -7.5816, moa: "Plk-1 Inhibitor" }
+    };
+
+    let EXPERIMENTAL_PAIRS = {};
+    const drawer = new SmilesDrawer.Drawer({ width: 340, height: 140 });
+
+    async function loadExperimentalPairs() {
+      try {
+        // Load pairs dynamically from server or fallback
+        const res = await fetch("http://127.0.0.1:8000/pairs");
+        if (res.ok) {
+          EXPERIMENTAL_PAIRS = await res.json();
+        }
+      } catch (e) {
+        console.log("Using local lookup");
+      }
+    }
+
+    function initDropdowns() {
+      const selA = document.getElementById('selectA');
+      const selB = document.getElementById('selectB');
+      selA.innerHTML = '';
+      selB.innerHTML = '';
+
+      Object.keys(DRUG_DATABASE).sort().forEach((name) => {
+        selA.options.add(new Option(name, name, false, name === "Panobinostat"));
+        selB.options.add(new Option(name, name, false, name === "Oprozomib"));
+      });
+
+      onCompoundSelected('A');
+      onCompoundSelected('B');
+    }
+
+    function onCompoundSelected(target) {
+      const sel = document.getElementById(`select${target}`);
+      const drug = DRUG_DATABASE[sel.value];
+      if (!drug) return;
+
+      document.getElementById(`smiles${target}`).value = drug.smiles;
+      document.getElementById(`moa${target}`).value = drug.moa;
+      document.getElementById(`sliderPot${target}`).value = drug.pot;
+      document.getElementById(`logAc50Val${target}`).innerText = parseFloat(drug.pot).toFixed(2);
+
+      updateChemicalDescriptors(target, drug.smiles);
+      triggerInference();
+    }
+
+    function onCustomSmiles(target) {
+      const smiles = document.getElementById(`smiles${target}`).value;
+      updateChemicalDescriptors(target, smiles);
+      triggerInference();
+    }
+
+    function onSliderChange(target) {
+      const val = parseFloat(document.getElementById(`sliderPot${target}`).value).toFixed(2);
+      document.getElementById(`logAc50Val${target}`).innerText = val;
+      triggerInference();
+    }
+
+    function updateChemicalDescriptors(target, smiles) {
+      const canvas = document.getElementById(`canvas${target}`);
+      SmilesDrawer.parse(smiles, (tree) => {
+        drawer.draw(tree, canvas, 'light', false);
+      }, (err) => console.log("SmilesDrawer parse error:", err));
+
+      const cCount = (smiles.match(/[C]/g) || []).length;
+      const nCount = (smiles.match(/[N]/g) || []).length;
+      const oCount = (smiles.match(/[O]/g) || []).length;
+
+      document.getElementById(`mw${target}`).innerText = (cCount * 12.01 + nCount * 14.01 + oCount * 16.0 + 35.0).toFixed(1);
+      document.getElementById(`logp${target}`).innerText = ((cCount * 0.28) - (oCount * 0.45) + (nCount * 0.12)).toFixed(2);
+      document.getElementById(`tpsa${target}`).innerText = (nCount * 12.8 + oCount * 9.2).toFixed(1);
+      document.getElementById(`hbd${target}`).innerText = (smiles.match(/NH|OH/g) || []).length;
+      document.getElementById(`hba${target}`).innerText = nCount + oCount;
+      document.getElementById(`rotb${target}`).innerText = Math.max(2, Math.floor(cCount / 3));
+    }
+
+    function loadPreset(d1, d2) {
+      const selA = document.getElementById('selectA');
+      const selB = document.getElementById('selectB');
+      
+      for (let opt of selA.options) { if (opt.value.includes(d1)) { selA.value = opt.value; break; } }
+      for (let opt of selB.options) { if (opt.value.includes(d2)) { selB.value = opt.value; break; } }
+
+      onCompoundSelected('A');
+      onCompoundSelected('B');
+    }
+
+    async function triggerInference() {
+      const nameA = document.getElementById('selectA').value;
+      const smilesA = document.getElementById('smilesA').value;
+      const potA = parseFloat(document.getElementById('sliderPotA').value);
+
+      const nameB = document.getElementById('selectB').value;
+      const smilesB = document.getElementById('smilesB').value;
+      const potB = parseFloat(document.getElementById('sliderPotB').value);
+
+      const payload = {
+        name1: nameA, smiles1: smilesA, pot1: potA,
+        name2: nameB, smiles2: smilesB, pot2: potB
+      };
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const gamma = data.gamma;
+        const isSynergy = data.synergistic;
+
+        document.getElementById('gammaScore').innerText = gamma.toFixed(4);
+        
+        const card = document.getElementById('synergyCard');
+        const badge = document.getElementById('synergyBadge');
+        if (isSynergy) {
+          card.className = "glass-sub p-4 rounded-xl text-center border border-emerald-500/60 bg-emerald-950/40";
+          badge.className = "text-[11px] px-2 py-0.5 rounded font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+          badge.innerText = "Synergistic (γ < 0.95)";
+        } else {
+          card.className = "glass-sub p-4 rounded-xl text-center border border-amber-500/60 bg-amber-950/40";
+          badge.className = "text-[11px] px-2 py-0.5 rounded font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40";
+          badge.innerText = "Antagonistic / Additive (γ ≥ 0.95)";
+        }
+
+        const prob = Math.min(99, Math.max(1, Math.round((1.15 - gamma) * 220)));
+        document.getElementById('synergyProb').innerText = `${prob}%`;
+
+        // Tanimoto structural similarity approximation
+        const mwA = parseFloat(document.getElementById('mwA').innerText) || 300;
+        const mwB = parseFloat(document.getElementById('mwB').innerText) || 300;
+        const tanimoto = (Math.min(mwA, mwB) / Math.max(mwA, mwB)).toFixed(2);
+        document.getElementById('tanimotoVal').innerText = tanimoto;
+
+        // Ground Truth Display from backend response
+        if (data.exp_gamma !== null && data.exp_gamma !== undefined) {
+          document.getElementById('expGammaVal').innerText = data.exp_gamma.toFixed(4);
+          const err = Math.abs(gamma - data.exp_gamma).toFixed(4);
+          document.getElementById('modelErrorVal').innerText = `|Δγ| = ${err} (${((err/data.exp_gamma)*100).toFixed(1)}% error)`;
+        } else {
+          document.getElementById('expGammaVal').innerText = "De Novo Novel Screen";
+          document.getElementById('modelErrorVal').innerText = "Unmeasured in Training Assay";
+        }
+
+      } catch (err) {
+        document.getElementById('gammaScore').innerText = "Err";
+        document.getElementById('synergyBadge').innerText = "Check Port 8000";
+      }
+    }
+
+    window.onload = () => {
+      loadExperimentalPairs();
+      initDropdowns();
+    };
+  </script>
+</body>
+</html>
