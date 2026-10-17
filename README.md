@@ -81,12 +81,12 @@ Double-click `dashboard.html` or open it in your web browser to interact with th
 
 # 🧪 Key Features
 
-* **Real-Time RDKit Cheminformatics:** Instantly parses SMILES strings into 2D chemical drawings, Molecular Weight, Lipophilicity (\(\log P\)), Polar Surface Area (TPSA), and H-bond profiles.
+* **Real-Time RDKit Cheminformatics:** Instantly parses SMILES strings into 2D chemical drawings, Molecular Weight, Lipophilicity $$\log P$$, Polar Surface Area (TPSA), and H-bond profiles.
 * **Dual-Level Validation:**
   * **Macro:** 5-Fold Cross-Validation (ROC-AUC = 0.8073, RMSE = 0.1355).
   * **Micro:** Automated NCATS wet-lab ground truth lookup displaying real-time model absolute error $\vert\Delta\gamma\vert$.
 * **De Novo Discovery & Batch Screening:** Supports custom SMILES input and CSV batch uploading for high-throughput library screening.
-* **Explainable AI (XAI):** Gini split importances identifying Potency Asymmetry (\(\vert{}\Delta \log \text{AC}_{50}\vert{}\)) and Lipophilicity as primary drivers of combination efficacy.
+* **Explainable AI (XAI):** Gini split importances identifying Potency Asymmetry $|\Delta \log \text{AC}_{50}|$ and Lipophilicity as primary drivers of combination efficacy.
 
 ---
 
