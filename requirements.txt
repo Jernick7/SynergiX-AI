@@ -1,0 +1,16 @@
+# Cheminformatics & Molecular Modeling
+rdkit>=2023.9.0
+
+# Core Scientific Computing & ML
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# API Backend & Validation
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+
+# UI & Utilities
+requests>=2.31.0
